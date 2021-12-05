@@ -15,17 +15,18 @@ class discriminator(nn.Module):
         super(discriminator, self).__init__()
         self.fc1 = nn.Linear(input_size, 1024)
         self.fc2 = nn.Linear(self.fc1.out_features, 512)
-        self.fc3 = nn.Linear(self.f2.out_features, 256)
+        self.fc3 = nn.Linear(self.fc2.out_features, 256)
         self.fc4 = nn.Linear(self.fc3.out_features, n_class)
 
     def forward(self, input):
-        x = F.relu(self.fc1(input), 0.2)
+        x = F.leaky_relu(self.fc1(input), 0.2)
         x = F.dropout(x, 0.3)
-        x = F.relu(self.fc2(x), 0.2)
+        x = F.leaky_relu(self.fc2(x), 0.2)
         x = F.dropout(x, 0.3)
-        x = F.relu(self.fc3(x), 0.2)
+        x = F.leaky_relu(self.fc3(x), 0.2)
         x = F.dropout(x, 0.3)
-        x = F.relu(self.fc4(x))
+        x = torch.sigmoid(self.fc4(x))
+        x = x.squeeze(-1)
 
         return x
 

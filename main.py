@@ -12,6 +12,8 @@ from torch.autograd import Variable
 from generator import generator
 from discriminator import discriminator
 
+print(".................................gpu is possible.................................")
+print(torch.cuda.is_available())
 if not os.path.isdir('MNIST_GAN_results'):
     os.mkdir('MNIST_GAN_results')
 if not os.path.isdir('MNIST_GAN_results/Random_results'):
@@ -22,7 +24,8 @@ if not os.path.isdir('MNIST_GAN_results/Fixed_results'):
 
 def show_result(num_epoch, show = False, save = False, path = 'result.png', isFix = False):
     z_ = torch.randn((5*5, 100))
-    z_ = Variable(z_.cuda(), volatile=True)
+    with torch.no_grad():
+        z_ = Variable(z_.cuda())
 
     G.eval()
     if isFix:
@@ -79,21 +82,23 @@ def show_train_hist(hist, show = False, save = False, path = 'Train_hist.png'):
 
 
 
-
+# main function
 batch_size = 128
 lr = 0.0002
 train_epoch = 100
 
 fixed_z_ = torch.randn((5*5, 100)) # fixed noise
-fixed_z_ = Variable(fixed_z_.cuda(), volatile=True)
+with torch.no_grad():
+    fixed_z_ = Variable(fixed_z_.cuda())
 
-transforms = transforms.Compose([
+transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.5], std=[0.5])
 ])
 
+print(".................................data_loader running.................................")
 train_loader = torch.utils.data.DataLoader(
-    datasets.MNIST('data', train=True, download=True, transforms=transforms),
+    datasets.MNIST('data', train=True, download=True, transform=transform),
     batch_size=batch_size,
     shuffle=True
 )
@@ -110,6 +115,7 @@ BCE_loss = nn.BCELoss()
 G_optimizer = optim.Adam(G.parameters(), lr=lr)
 D_optimizer = optim.Adam(D.parameters(), lr=lr)
 
+print(".................................training.................................")
 # train
 train_hist = {}
 train_hist['D_losses'] = []
@@ -129,15 +135,15 @@ for epoch in range(train_epoch):
 
         x_, y_real_, y_fake_ = Variable(x_.cuda()), Variable(y_real_.cuda()), Variable(y_fake_.cuda())
         D_result = D(x_)
-        print(D_result.shape)
+        #print(D_result.shape)
 
         D_real_loss = BCE_loss(D_result, y_real_)
-        D_real_score = D_result
+        #D_real_score = D_result
 
         z_ = torch.randn((mini_batch, 100)) # random generate noise picture
         z_ = Variable(z_.cuda())
         G_result = G(z_)
-        print(G_result.shape)
+        # print(G_result.shape)
 
         D_result = D(G_result)
         D_fake_loss = BCE_loss(D_result, y_fake_)
@@ -175,6 +181,7 @@ for epoch in range(train_epoch):
     train_hist['D_losses'].append(torch.mean(torch.FloatTensor(D_losses)))
     train_hist['G_losses'].append(torch.mean(torch.FloatTensor(D_losses)))
 
+print(".................................saving model running.................................")
 # save model
 print("Training finish!.. save training results")
 torch.save(G.state_dict(), "MNIST_GAN_results/generator_param.pkl")
